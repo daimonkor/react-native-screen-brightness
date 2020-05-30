@@ -1,14 +1,11 @@
 package com.robinpowered.react.ScreenBrightness;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import android.view.WindowManager;
-import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Promise;
@@ -21,7 +18,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 /**
  * A module responsible for adjusting the brightness level of the display and the activity.
- *
+ * <p>
  * Exposes an API to the JavaScript context to request permission to `WRITE_SETTINGS` and
  * set specific brightness levels.
  */
@@ -40,7 +37,7 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
     /**
      * Constructor
      *
-     * @param reactApplicationContext The application context provided by the ReactPackage.
+     * @param reactApplicationContext  The application context provided by the ReactPackage.
      * @param writeSettingsRequestCode The request code for initiating the permission intent.
      */
     public ScreenBrightnessModule(
@@ -98,7 +95,7 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
 
         // Check for permisions if >= Android 6
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-          hasPermission = Settings.System.canWrite(getReactApplicationContext());
+            hasPermission = Settings.System.canWrite(getReactApplicationContext());
         }
 
         return hasPermission;
@@ -158,6 +155,43 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
     }
 
     /**
+     * Sets the brightness mode to the device settings.
+     *
+     * @param brightnessMode 1 or 0.
+     * @return True if the brightness mode has been set.
+     */
+    private boolean setScreenBrightnessMode(int brightnessMode) {
+        if (hasSettingsPermission() && (brightnessMode == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC || brightnessMode == Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)) {
+            Settings.System.putInt(
+                    getReactApplicationContext().getContentResolver(),
+                    Settings.System.SCREEN_BRIGHTNESS_MODE, brightnessMode);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Gets the brightness mode of the device settings.
+     *
+     * @return The brightness mode.
+     */
+    private Integer getScreenBrightnessMode() {
+        Integer brightnessMode;
+        try {
+            brightnessMode = Settings.System.getInt(getReactApplicationContext().getContentResolver(),
+                    Settings.System.SCREEN_BRIGHTNESS_MODE);
+        } catch (Settings.SettingNotFoundException e) {
+            brightnessMode = null;
+        }
+        return brightnessMode;
+    }
+
+    @ReactMethod
+    public void getScreenBrightnessMode(final Promise promise) {
+        promise.resolve(getScreenBrightnessMode());
+    }
+
+    /**
      * Determines if the application has been granted WRITE_SETTINGS permissions.
      * This method is callable from the JS context.
      *
@@ -178,11 +212,27 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
     }
 
     /**
+     * Updates the device brightness mode.
+     * This method is callable from the JS context.
+     *
+     * @param brightnessMode The brightness mode between 0 or1.
+     * @param promise        A promise resolving if the brightness mode was updated.
+     */
+    @ReactMethod
+    public void setScreenBrightnessMode(int brightnessMode, final Promise promise) {
+        if (setScreenBrightnessMode(brightnessMode)) {
+            promise.resolve(brightnessMode);
+        } else {
+            promise.reject(new Error("Unable to set system brightness mode"));
+        }
+    }
+
+    /**
      * Updates the device brightness.
      * This method is callable from the JS context.
      *
      * @param brightness The brightness level between 0-1.
-     * @param promise A promise resolving if the brightness was updated.
+     * @param promise    A promise resolving if the brightness was updated.
      */
     @ReactMethod
     public void setSystemBrightness(float brightness, final Promise promise) {
@@ -226,7 +276,7 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
      * This method is callable from the JS context.
      *
      * @param brightness The brightness level.
-     * @param promise A promise resolving the updated brightness level.
+     * @param promise    A promise resolving the updated brightness level.
      */
     @ReactMethod
     public void setAppBrightness(final float brightness, final Promise promise) {
@@ -250,8 +300,8 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
      * Gets the brightness level of the device.
      * This method is callable from the JS context.
      *
-     * @deprecated Use {@link #getSystemBrightness()} instead.
      * @param promise A promise resolving the brightness level.
+     * @deprecated Use {@link #getSystemBrightness()} instead.
      */
     @ReactMethod
     public void getBrightness(final Promise promise) {
@@ -262,9 +312,9 @@ public class ScreenBrightnessModule extends ReactContextBaseJavaModule
      * Updates the device brightness.
      * This method is callable from the JS context.
      *
-     * @deprecated Use {@link #setSystemBrightness(int)} instead.
      * @param brightness The brightness level between 0-1.
-     * @param promise A promise resolving if the brightness was updated.
+     * @param promise    A promise resolving if the brightness was updated.
+     * @deprecated Use {@link #setSystemBrightness(int)} instead.
      */
     @ReactMethod
     public void setBrightness(float brightness, final Promise promise) {
